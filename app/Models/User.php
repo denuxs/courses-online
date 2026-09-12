@@ -95,4 +95,24 @@ class User extends Authenticatable
         return $this->belongsToMany(Course::class, 'enrollments')
             ->withPivot(['status', 'progress_percent', 'enrolled_at', 'completed_at']);
     }
+
+    /**
+     * The payment requests made by this user.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * The payments this user (as admin) has confirmed or rejected.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function confirmedPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'confirmed_by');
+    }
 }

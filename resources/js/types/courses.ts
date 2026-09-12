@@ -1,4 +1,4 @@
-import type { User } from './auth';
+import type { User } from "./auth";
 
 export type Category = {
     id: number;
@@ -7,7 +7,7 @@ export type Category = {
     courses_count?: number;
 };
 
-export type CourseStatus = 'draft' | 'published' | 'archived';
+export type CourseStatus = "draft" | "published" | "archived";
 
 export type Course = {
     id: number;
@@ -22,7 +22,7 @@ export type Course = {
     published_at: string | null;
     created_at: string;
     updated_at: string;
-    instructor?: Pick<User, 'id' | 'name'>;
+    instructor?: Pick<User, "id" | "name">;
     category?: Category | null;
     modules?: Module[];
     lessons_count?: number;
@@ -51,7 +51,7 @@ export type Lesson = {
     position: number;
 };
 
-export type EnrollmentStatus = 'active' | 'completed' | 'cancelled';
+export type EnrollmentStatus = "active" | "completed" | "cancelled";
 
 export type Enrollment = {
     id: number;
@@ -62,6 +62,27 @@ export type Enrollment = {
     enrolled_at: string;
     completed_at: string | null;
     course?: Course;
+};
+
+export type PaymentStatus = "pending" | "confirmed" | "rejected";
+
+export type PaymentMethod = "cash" | "bank_transfer" | "other";
+
+export type Payment = {
+    id: number;
+    user_id: number;
+    course_id: number;
+    amount: string;
+    currency: string;
+    method: PaymentMethod;
+    status: PaymentStatus;
+    confirmed_by: number | null;
+    confirmed_at: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+    user?: Pick<User, "id" | "name" | "email">;
+    course?: Pick<Course, "id" | "title" | "slug">;
 };
 
 export type PaginationLink = {

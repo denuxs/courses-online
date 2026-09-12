@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\Instructor\CourseController as InstructorCourseController;
 use App\Http\Controllers\Instructor\CourseModuleController;
 use App\Http\Controllers\Instructor\ModuleLessonController;
+use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -15,6 +17,9 @@ Route::get('courses', [CourseController::class, 'index'])->name('courses.index')
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('instructor/courses', [InstructorCourseController::class, 'index'])->name('instructor.courses.index');
+
+    Route::get('admin/payments', [AdminPaymentController::class, 'index'])->name('admin.payments.index');
+    Route::patch('admin/payments/{payment}', [AdminPaymentController::class, 'update'])->name('admin.payments.update');
 
     // Must be registered before the public `courses/{course:slug}` route below,
     // otherwise "create" would be matched as a slug.
@@ -39,6 +44,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('courses/{course:slug}/modules/{module}/lessons/{lesson}', [ModuleLessonController::class, 'update'])->name('courses.modules.lessons.update');
     Route::delete('courses/{course:slug}/modules/{module}/lessons/{lesson}', [ModuleLessonController::class, 'destroy'])->name('courses.modules.lessons.destroy');
 
-    Route::post('courses/{course:slug}/enroll', [EnrollmentController::class, 'store'])->name('enrollments.store');
+    Route::post('courses/{course:slug}/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::delete('courses/{course:slug}/enroll', [EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
 });

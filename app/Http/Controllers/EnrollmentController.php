@@ -7,7 +7,6 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,27 +26,6 @@ class EnrollmentController extends Controller
         return Inertia::render('enrollments/Index', [
             'enrollments' => $enrollments,
         ]);
-    }
-
-    /**
-     * Enroll the authenticated user in the given course.
-     */
-    public function store(Request $request, Course $course): RedirectResponse
-    {
-        if (! $course->status->isPublished()) {
-            throw ValidationException::withMessages([
-                'course' => __('This course is not available for enrollment.'),
-            ]);
-        }
-
-        $request->user()->enrollments()->firstOrCreate(
-            ['course_id' => $course->id],
-            ['status' => EnrollmentStatus::Active, 'enrolled_at' => now()]
-        );
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('You are enrolled in this course.')]);
-
-        return to_route('courses.show', $course);
     }
 
     /**

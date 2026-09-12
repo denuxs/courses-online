@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -21,6 +22,8 @@ class CourseSeeder extends Seeder
         $instructors = User::factory()->instructor()->count(3)->create();
 
         $students = User::factory()->count(10)->create();
+
+        $admin = User::factory()->admin()->create(['email' => 'admin@example.com']);
 
         $courses = $instructors->flatMap(function (User $instructor) use ($categories) {
             return Course::factory()
@@ -57,10 +60,41 @@ class CourseSeeder extends Seeder
             });
         });
 
-        $students->each(function (User $student) use ($courses) {
-            Enrollment::factory()
+        $students->each(function (User $student) use ($courses, $admin) {
+            $course = $courses->random();
+
+            Payment::factory()
                 ->for($student)
-                ->for($courses->random(), 'course')
+                ->for($course)
+                ->confirmed($admin)
+                ->create();
+
+            $enrollment = Enrollment::factory()
+                ->for($student)
+                ->for($course, 'course')
+                ->create();
+
+            $course->lessons()->inRandomOrder()->take(3)->get()->each(
+                fn ($lesson, int $index) => $enrollment->lessonProgress()->create([
+                    'lesson_id' => $lesson->id,
+                    'seconds_watched' => fake()->numberBetween(30, 900),
+                    'completed_at' => $index === 0 ? now() : null,
+                ])
+            );
+        });
+
+        $students->take(4)->each(function (User $student) use ($courses) {
+            Payment::factory()
+                ->for($student)
+                ->for($courses->random())
+                ->create();
+        });
+
+        $students->take(2)->each(function (User $student) use ($courses, $admin) {
+            Payment::factory()
+                ->for($student)
+                ->for($courses->random())
+                ->rejected($admin)
                 ->create();
         });
     }
