@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { dashboard } from '@/routes';
+import { Head, usePage } from "@inertiajs/vue3";
+import AdminDashboard from "@/components/dashboard/AdminDashboard.vue";
+import InstructorDashboard from "@/components/dashboard/InstructorDashboard.vue";
+import StudentDashboard from "@/components/dashboard/StudentDashboard.vue";
+import Heading from "@/components/Heading.vue";
+import { dashboard } from "@/routes";
+import type { DashboardProps } from "@/types";
+
+const props = defineProps<DashboardProps>();
+
+const page = usePage();
 
 defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: "Dashboard",
                 href: dashboard(),
             },
         ],
@@ -18,30 +26,26 @@ defineOptions({
 <template>
     <Head title="Dashboard" />
 
-    <div
-        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-    >
-        <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div
-                class="border-sidebar-border/70 dark:border-sidebar-border relative aspect-video overflow-hidden rounded-xl border"
-            >
-                <PlaceholderPattern />
-            </div>
-            <div
-                class="border-sidebar-border/70 dark:border-sidebar-border relative aspect-video overflow-hidden rounded-xl border"
-            >
-                <PlaceholderPattern />
-            </div>
-            <div
-                class="border-sidebar-border/70 dark:border-sidebar-border relative aspect-video overflow-hidden rounded-xl border"
-            >
-                <PlaceholderPattern />
-            </div>
-        </div>
-        <div
-            class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 rounded-xl border md:min-h-min"
-        >
-            <PlaceholderPattern />
-        </div>
+    <div class="space-y-6">
+        <Heading
+            title="Dashboard"
+            :description="`Hola, ${page.props.auth.user.name}`"
+        />
+
+        <StudentDashboard
+            v-if="props.role === 'student'"
+            :stats="props.stats"
+        />
+        <InstructorDashboard
+            v-else-if="props.role === 'instructor'"
+            :stats="props.stats"
+            :courses="props.courses"
+            :recent_enrollments="props.recent_enrollments"
+        />
+        <AdminDashboard
+            v-else
+            :stats="props.stats"
+            :pending_payments="props.pending_payments"
+        />
     </div>
 </template>

@@ -26,6 +26,7 @@ export type Course = {
     category?: Category | null;
     modules?: Module[];
     lessons_count?: number;
+    enrollments_count?: number;
     can?: {
         update: boolean;
         delete: boolean;
@@ -62,6 +63,7 @@ export type Enrollment = {
     enrolled_at: string;
     completed_at: string | null;
     course?: Course;
+    user?: Pick<User, "id" | "name">;
 };
 
 export type PaymentStatus = "pending" | "confirmed" | "rejected";

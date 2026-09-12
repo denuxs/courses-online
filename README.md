@@ -168,6 +168,7 @@ El frontend no conoce roles: los controladores envían flags por recurso
 | `GET /courses`                                      | Catálogo de cursos publicados, filtrable por categoría | Público     |
 | `GET /courses/{slug}`                               | Detalle del curso con su temario                       | Público     |
 | `GET /categories`, `GET /categories/{slug}`         | Categorías y sus cursos                                | Público     |
+| `GET /dashboard`                                    | Panel con métricas según el rol del usuario            | Autenticado |
 | `GET /courses/create`, `GET /courses/{slug}/edit`   | Alta y edición de curso                                | Instructor  |
 | `POST/PUT/DELETE /courses/{slug}/modules/...`       | Gestión de módulos y lecciones                         | Propietario |
 | `GET /instructor/courses`                           | Cursos propios, incluidos borradores                   | Instructor  |
@@ -178,6 +179,21 @@ El frontend no conoce roles: los controladores envían flags por recurso
 
 Listado completo con `php artisan route:list --except-vendor`.
 
+## Dashboard
+
+`GET /dashboard` (`DashboardController`) sirve una única página Inertia (`Dashboard.vue`)
+cuyo contenido depende del `role` del usuario autenticado:
+
+- **Estudiante**: contadores de cursos activos, completados y pagos pendientes de revisión.
+- **Instructor**: contadores de cursos publicados/borrador y de alumnos, más sus cursos
+  recientes (con nº de lecciones e inscritos) y las últimas inscripciones en sus cursos.
+- **Admin**: métricas globales (usuarios, cursos, inscripciones activas, ingresos
+  confirmados) y los últimos pagos pendientes de revisión, con acceso directo a
+  `admin/payments`.
+
+El sidebar (`AppSidebar.vue`) también se filtra por rol: el enlace "Teaching" solo aparece
+para instructores y admins, y "Payments" solo para admins.
+
 ## Estructura del frontend
 
 ```
@@ -185,10 +201,11 @@ resources/js/
 ├── pages/            # páginas Inertia (courses/, categories/, enrollments/, instructor/, admin/)
 ├── components/       # componentes de aplicación
 │   ├── courses/      # CourseCard, CourseForm, CurriculumEditor
+│   ├── dashboard/    # StatCard y las variantes por rol (Student/Instructor/Admin)
 │   ├── landing/      # secciones de la home pública (Hero, Stats, FeaturedCourses...)
 │   └── ui/           # primitivas shadcn-vue (no editar a mano)
 ├── layouts/          # AppLayout, AuthLayout, settings/Layout
-├── types/            # tipos compartidos, incluido el dominio en courses.ts
+├── types/            # tipos compartidos: courses.ts (dominio), dashboard.ts, auth.ts...
 ├── actions/ routes/  # generados por Wayfinder (git-ignored)
 └── app.ts            # arranque de Inertia y resolución de layouts
 ```
