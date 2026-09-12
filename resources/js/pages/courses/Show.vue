@@ -2,6 +2,7 @@
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { Lock, Play } from '@lucide/vue';
 import EnrollmentController from '@/actions/App/Http/Controllers/EnrollmentController';
+import PaymentController from '@/actions/App/Http/Controllers/PaymentController';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ type Props = {
         delete: boolean;
     };
     is_enrolled: boolean;
+    pending_payment: boolean;
 };
 
 defineProps<Props>();
@@ -73,16 +75,7 @@ defineOptions({
                 </span>
 
                 <Form
-                    v-if="!is_enrolled"
-                    v-bind="EnrollmentController.store.form(course)"
-                    v-slot="{ processing }"
-                >
-                    <Button type="submit" :disabled="processing">
-                        Enroll
-                    </Button>
-                </Form>
-                <Form
-                    v-else
+                    v-if="is_enrolled"
                     v-bind="EnrollmentController.destroy.form(course)"
                     v-slot="{ processing }"
                 >
@@ -92,6 +85,18 @@ defineOptions({
                         :disabled="processing"
                     >
                         Cancel enrollment
+                    </Button>
+                </Form>
+                <Button v-else-if="pending_payment" disabled variant="outline">
+                    Pending approval
+                </Button>
+                <Form
+                    v-else
+                    v-bind="PaymentController.store.form(course)"
+                    v-slot="{ processing }"
+                >
+                    <Button type="submit" :disabled="processing">
+                        Request access
                     </Button>
                 </Form>
             </div>

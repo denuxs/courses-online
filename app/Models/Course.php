@@ -107,6 +107,16 @@ class Course extends Model
     }
 
     /**
+     * The payment requests made for this course.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * The students enrolled in this course.
      *
      * @return BelongsToMany<User, $this>

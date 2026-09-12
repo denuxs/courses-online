@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EnrollmentStatus;
+use App\Enums\PaymentStatus;
 use App\Http\Requests\Courses\StoreCourseRequest;
 use App\Http\Requests\Courses\UpdateCourseRequest;
 use App\Models\Category;
@@ -83,6 +84,11 @@ class CourseController extends Controller
                 ->enrollments()
                 ->where('course_id', $course->id)
                 ->whereNot('status', EnrollmentStatus::Cancelled)
+                ->exists(),
+            'pending_payment' => $request->user() !== null && $request->user()
+                ->payments()
+                ->where('course_id', $course->id)
+                ->where('status', PaymentStatus::Pending)
                 ->exists(),
         ]);
     }

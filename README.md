@@ -57,8 +57,11 @@ mysql -u root -p -e 'CREATE DATABASE courses CHARACTER SET utf8mb4 COLLATE utf8m
 php artisan migrate --seed
 ```
 
-El seeder crea 4 categorías, 3 instructores, 10 estudiantes y 10 cursos con sus módulos,
-lecciones e inscripciones. Todos los usuarios generados usan la contraseña `password`.
+El seeder crea 4 categorías, 3 instructores, 10 estudiantes, un admin
+(`admin@example.com`) y 10 cursos con sus módulos y lecciones. Además siembra el flujo de
+pagos: la mayoría de estudiantes recibe un pago confirmado (con su inscripción activa y algo
+de progreso en `lesson_progress`), 4 quedan con un pago `pending` y 2 con uno `rejected`.
+Todos los usuarios generados usan la contraseña `password`.
 
 Levanta el entorno de desarrollo (servidor, cola, logs y Vite a la vez):
 
@@ -101,7 +104,11 @@ User ─┬─< Course >── Category
       │      │
       │      └──< Module ──< Lesson
       │
+      ├──< Payment >───── Course
+      │
       └──< Enrollment >── Course
+             │
+             └──< LessonProgress >── Lesson
 ```
 
 - **User** tiene un `role`: `student`, `instructor` o `admin` (enum `App\Enums\UserRole`).
@@ -110,10 +117,33 @@ User ─┬─< Course >── Category
   Se resuelve por `slug` en las rutas.
 - **Module** agrupa lecciones dentro de un curso, ordenadas por `position`.
 - **Lesson** puede marcarse como `is_free_preview` para mostrarse sin inscripción.
+- **Payment** es la solicitud de acceso de un estudiante a un curso: `status`
+  (`pending`/`confirmed`/`rejected`) y `method` (`cash`/`bank_transfer`/`other`). Incluye los
+  cursos gratuitos (`amount = 0`); el flujo es el mismo para todos.
 - **Enrollment** une usuario y curso (único por pareja), con `status`
-  (`active`/`completed`/`cancelled`) y un `progress_percent` desnormalizado.
+  (`active`/`completed`/`cancelled`) y un `progress_percent` desnormalizado. Solo se crea (o
+  reactiva) cuando un admin confirma el `Payment` correspondiente.
+- **LessonProgress** registra, por inscripción y lección, `completed_at` y `seconds_watched`
+  (único por pareja). Hoy solo lo escribe el seeder; ningún controlador lo actualiza todavía.
 
-Borrar un curso arrastra en cascada sus módulos, lecciones e inscripciones.
+Borrar un curso arrastra en cascada sus módulos, lecciones, pagos e inscripciones.
+
+### Flujo de pagos e inscripción
+
+El estudiante nunca se inscribe directamente: **solicita acceso** al curso, y el admin
+decide si otorgarlo.
+
+1. `POST /courses/{slug}/payments` (`PaymentController@store`) crea un `Payment` en estado
+   `pending`, siempre que el estudiante no esté ya inscrito (con estado distinto de
+   `cancelled`) ni tenga otra solicitud pendiente para ese mismo curso.
+2. `GET /admin/payments` (`Admin\PaymentController@index`) lista los pagos `pending`, solo
+   para admins (`PaymentPolicy`).
+3. `PATCH /admin/payments/{payment}` los confirma o rechaza. Al confirmar, crea o reactiva
+   (`updateOrCreate`) el `Enrollment` como `active`, dentro de una transacción junto con el
+   propio `Payment`.
+4. El estudiante cancela su acceso desde `DELETE /courses/{slug}/enroll`
+   (`EnrollmentController@destroy`), que solo marca el `Enrollment` como `cancelled` — no
+   toca el `Payment` histórico, así que puede volver a solicitar acceso más adelante.
 
 El esquema original del que parte todo esto está en [`database.sql`](database.sql), y las
 decisiones de diseño (y dónde nos desviamos de ese SQL) están documentadas en
@@ -123,36 +153,59 @@ decisiones de diseño (y dónde nos desviamos de ese SQL) están documentadas en
 
 Las policies (`CoursePolicy`, `ModulePolicy`, `LessonPolicy`) aplican una regla simple: solo
 el instructor propietario del curso —o un admin— puede editarlo, junto con sus módulos y
-lecciones. Los cursos en borrador solo son visibles para su propietario.
+lecciones. Los cursos en borrador solo son visibles para su propietario. `PaymentPolicy`
+restringe `admin/payments` a usuarios con `role = admin`; no hay middleware de rol en las
+rutas, la autorización vive en gates dentro de los controladores.
 
 El frontend no conoce roles: los controladores envían flags por recurso
 (`can.update`, `can.delete`, `is_enrolled`, `can_create`) en el payload de Inertia.
 
 ## Rutas
 
-| Ruta                                              | Descripción                                            | Acceso      |
-| ------------------------------------------------- | ------------------------------------------------------ | ----------- |
-| `GET /courses`                                    | Catálogo de cursos publicados, filtrable por categoría | Público     |
-| `GET /courses/{slug}`                             | Detalle del curso con su temario                       | Público     |
-| `GET /categories`, `GET /categories/{slug}`       | Categorías y sus cursos                                | Público     |
-| `GET /courses/create`, `GET /courses/{slug}/edit` | Alta y edición de curso                                | Instructor  |
-| `POST/PUT/DELETE /courses/{slug}/modules/...`     | Gestión de módulos y lecciones                         | Propietario |
-| `GET /instructor/courses`                         | Cursos propios, incluidos borradores                   | Instructor  |
-| `GET /my-enrollments`                             | Cursos en los que estás inscrito                       | Autenticado |
-| `POST/DELETE /courses/{slug}/enroll`              | Inscribirse y cancelar                                 | Autenticado |
+| Ruta                                                | Descripción                                            | Acceso      |
+| --------------------------------------------------- | ------------------------------------------------------ | ----------- |
+| `GET /`                                             | Landing con cursos destacados y estadísticas           | Público     |
+| `GET /courses`                                      | Catálogo de cursos publicados, filtrable por categoría | Público     |
+| `GET /courses/{slug}`                               | Detalle del curso con su temario                       | Público     |
+| `GET /categories`, `GET /categories/{slug}`         | Categorías y sus cursos                                | Público     |
+| `GET /dashboard`                                    | Panel con métricas según el rol del usuario            | Autenticado |
+| `GET /courses/create`, `GET /courses/{slug}/edit`   | Alta y edición de curso                                | Instructor  |
+| `POST/PUT/DELETE /courses/{slug}/modules/...`       | Gestión de módulos y lecciones                         | Propietario |
+| `GET /instructor/courses`                           | Cursos propios, incluidos borradores                   | Instructor  |
+| `GET /my-enrollments`                               | Cursos en los que estás inscrito                       | Autenticado |
+| `POST /courses/{slug}/payments`                     | Solicitar acceso a un curso (crea un `Payment`)        | Autenticado |
+| `DELETE /courses/{slug}/enroll`                     | Cancelar la inscripción activa                         | Autenticado |
+| `GET /admin/payments`, `PATCH /admin/payments/{id}` | Revisar y confirmar/rechazar solicitudes de acceso     | Admin       |
 
 Listado completo con `php artisan route:list --except-vendor`.
+
+## Dashboard
+
+`GET /dashboard` (`DashboardController`) sirve una única página Inertia (`Dashboard.vue`)
+cuyo contenido depende del `role` del usuario autenticado:
+
+- **Estudiante**: contadores de cursos activos, completados y pagos pendientes de revisión.
+- **Instructor**: contadores de cursos publicados/borrador y de alumnos, más sus cursos
+  recientes (con nº de lecciones e inscritos) y las últimas inscripciones en sus cursos.
+- **Admin**: métricas globales (usuarios, cursos, inscripciones activas, ingresos
+  confirmados) y los últimos pagos pendientes de revisión, con acceso directo a
+  `admin/payments`.
+
+El sidebar (`AppSidebar.vue`) también se filtra por rol: el enlace "Teaching" solo aparece
+para instructores y admins, y "Payments" solo para admins.
 
 ## Estructura del frontend
 
 ```
 resources/js/
-├── pages/            # páginas Inertia (courses/, categories/, enrollments/, instructor/)
+├── pages/            # páginas Inertia (courses/, categories/, enrollments/, instructor/, admin/)
 ├── components/       # componentes de aplicación
 │   ├── courses/      # CourseCard, CourseForm, CurriculumEditor
+│   ├── dashboard/    # StatCard y las variantes por rol (Student/Instructor/Admin)
+│   ├── landing/      # secciones de la home pública (Hero, Stats, FeaturedCourses...)
 │   └── ui/           # primitivas shadcn-vue (no editar a mano)
 ├── layouts/          # AppLayout, AuthLayout, settings/Layout
-├── types/            # tipos compartidos, incluido el dominio en courses.ts
+├── types/            # tipos compartidos: courses.ts (dominio), dashboard.ts, auth.ts...
 ├── actions/ routes/  # generados por Wayfinder (git-ignored)
 └── app.ts            # arranque de Inertia y resolución de layouts
 ```

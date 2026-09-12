@@ -62,3 +62,36 @@ CREATE TABLE enrollments (
 CREATE INDEX idx_courses_status     ON courses(status, published_at);
 CREATE INDEX idx_enrollments_user   ON enrollments(user_id, status);
 CREATE INDEX idx_lessons_module_pos ON lessons(module_id, position);
+
+CREATE TABLE lesson_progress (
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT,
+    enrollment_id BIGINT    NOT NULL,
+    lesson_id     BIGINT    NOT NULL,
+    completed_at  TIMESTAMP NULL,
+    seconds_watched INT     NOT NULL DEFAULT 0,
+    FOREIGN KEY (enrollment_id) REFERENCES enrollments(id) ON DELETE CASCADE,
+    FOREIGN KEY (lesson_id)     REFERENCES lessons(id)     ON DELETE CASCADE,
+    UNIQUE KEY uq_lesson_progress (enrollment_id, lesson_id)
+);
+
+CREATE TABLE payments (
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id         BIGINT        NOT NULL,
+    course_id       BIGINT        NOT NULL,
+    amount          DECIMAL(10,2) NOT NULL,
+    currency        CHAR(3)       NOT NULL DEFAULT 'USD',
+    method          ENUM('cash', 'bank_transfer', 'other') NOT NULL DEFAULT 'bank_transfer',
+    -- reference_code  VARCHAR(120)  NULL,      -- número de transferencia, recibo, etc.
+    -- proof_path      VARCHAR(255)  NULL,      -- captura/comprobante subido por el estudiante
+    status          ENUM('pending', 'confirmed', 'rejected') NOT NULL DEFAULT 'pending',
+    confirmed_by    BIGINT        NULL,      -- admin/instructor que lo validó
+    confirmed_at    TIMESTAMP     NULL,
+    notes           TEXT          NULL,
+    created_at      TIMESTAMP     NULL,
+    updated_at      TIMESTAMP     NULL,
+    FOREIGN KEY (user_id)      REFERENCES users(id)   ON DELETE CASCADE,
+    FOREIGN KEY (course_id)    REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (confirmed_by) REFERENCES users(id)   ON DELETE SET NULL
+);
+
+CREATE INDEX idx_payments_status ON payments(status, created_at);

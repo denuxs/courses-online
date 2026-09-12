@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { Link } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
 import {
     Book,
-    BookOpen,
-    FolderGit2,
     FolderTree,
     GraduationCap,
     LayoutGrid,
     PencilRuler,
+    Receipt,
 } from "@lucide/vue";
 import AppLogo from "@/components/AppLogo.vue";
 import NavFooter from "@/components/NavFooter.vue";
@@ -23,39 +22,62 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { dashboard } from "@/routes";
+import { index as adminPaymentsIndex } from "@/routes/admin/payments";
 import { index as categoriesIndex } from "@/routes/categories";
 import { index as coursesIndex } from "@/routes/courses";
 import { index as enrollmentsIndex } from "@/routes/enrollments";
 import { index as instructorCoursesIndex } from "@/routes/instructor/courses";
 import type { NavItem } from "@/types";
+import { computed } from "vue";
 
-const mainNavItems: NavItem[] = [
-    {
-        title: "Dashboard",
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: "Courses",
-        href: coursesIndex(),
-        icon: Book,
-    },
-    {
-        title: "Categories",
-        href: categoriesIndex(),
-        icon: FolderTree,
-    },
-    {
-        title: "My enrollments",
-        href: enrollmentsIndex(),
-        icon: GraduationCap,
-    },
-    {
-        title: "Teaching",
-        href: instructorCoursesIndex(),
-        icon: PencilRuler,
-    },
-];
+const page = usePage();
+
+const mainNavItems = computed<NavItem[]>(() => {
+    const role = page.props.auth.user.role;
+    const isAdmin = role === "admin";
+    const canTeach = isAdmin || role === "instructor";
+
+    return [
+        {
+            title: "Dashboard",
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        {
+            title: "Courses",
+            href: coursesIndex(),
+            icon: Book,
+        },
+        {
+            title: "Categories",
+            href: categoriesIndex(),
+            icon: FolderTree,
+        },
+        {
+            title: "My enrollments",
+            href: enrollmentsIndex(),
+            icon: GraduationCap,
+        },
+        ...(canTeach
+            ? [
+                  {
+                      title: "Teaching",
+                      href: instructorCoursesIndex(),
+                      icon: PencilRuler,
+                  },
+              ]
+            : []),
+        ...(isAdmin
+            ? [
+                  {
+                      title: "Payments",
+                      href: adminPaymentsIndex(),
+                      icon: Receipt,
+                  },
+              ]
+            : []),
+    ];
+});
 
 const footerNavItems: NavItem[] = [
     // {
