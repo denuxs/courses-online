@@ -1,0 +1,67 @@
+# Version control
+.git
+.gitattributes
+.gitignore
+
+# Dependencies (installed fresh inside the image)
+/vendor
+/node_modules
+
+# Built assets (rebuilt inside the image)
+/public/build
+/public/hot
+/resources/js/actions
+/resources/js/routes
+/resources/js/wayfinder
+
+# Local environment & secrets
+.env
+.env.*
+!.env.example
+
+# Local databases
+/database/*.sqlite
+database.sql
+
+# Caches, logs and runtime state
+/storage/*.key
+/storage/app/*
+!/storage/app/public
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*
+/bootstrap/cache/*.php
+!/storage/framework/cache/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/testing/.gitignore
+!/storage/framework/views/.gitignore
+!/storage/logs/.gitignore
+!/bootstrap/cache/.gitignore
+
+# Tests & QA tooling output
+/tests
+/.phpunit.cache
+/phpunit.xml
+/phpstan.neon
+/.phpunit.result.cache
+
+# Editor / agent / CI tooling not needed inside the image
+/.vscode
+/.idea
+/.zed
+/.claude
+/.agents
+/.github
+/docs
+CLAUDE.md
+AGENTS.md
+boost.json
+.mcp.json
+opencode.json
+
+# Docker itself
+Dockerfile
+.dockerignore
+docker-compose*.yml
