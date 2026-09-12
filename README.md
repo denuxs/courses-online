@@ -164,6 +164,7 @@ El frontend no conoce roles: los controladores envían flags por recurso
 
 | Ruta                                                | Descripción                                            | Acceso      |
 | --------------------------------------------------- | ------------------------------------------------------ | ----------- |
+| `GET /`                                             | Landing con cursos destacados y estadísticas           | Público     |
 | `GET /courses`                                      | Catálogo de cursos publicados, filtrable por categoría | Público     |
 | `GET /courses/{slug}`                               | Detalle del curso con su temario                       | Público     |
 | `GET /categories`, `GET /categories/{slug}`         | Categorías y sus cursos                                | Público     |
@@ -184,6 +185,7 @@ resources/js/
 ├── pages/            # páginas Inertia (courses/, categories/, enrollments/, instructor/, admin/)
 ├── components/       # componentes de aplicación
 │   ├── courses/      # CourseCard, CourseForm, CurriculumEditor
+│   ├── landing/      # secciones de la home pública (Hero, Stats, FeaturedCourses...)
 │   └── ui/           # primitivas shadcn-vue (no editar a mano)
 ├── layouts/          # AppLayout, AuthLayout, settings/Layout
 ├── types/            # tipos compartidos, incluido el dominio en courses.ts

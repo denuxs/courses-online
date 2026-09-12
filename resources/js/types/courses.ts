@@ -85,6 +85,12 @@ export type Payment = {
     course?: Pick<Course, "id" | "title" | "slug">;
 };
 
+export type LandingStats = {
+    courses: number;
+    students: number;
+    instructors: number;
+};
+
 export type PaginationLink = {
     url: string | null;
     label: string;
