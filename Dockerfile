@@ -8,6 +8,7 @@
 FROM php:8.4-cli AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq-dev \
         libzip-dev \
         libpng-dev \
         libjpeg62-turbo-dev \
@@ -21,8 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gnupg \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
-        pdo_mysql \
-        mysqli \
+        pdo_pgsql \
+        pgsql \
         bcmath \
         exif \
         gd \
@@ -67,6 +68,7 @@ RUN cp .env.example .env \
 FROM php:8.4-apache AS app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq-dev \
         libzip-dev \
         libpng-dev \
         libjpeg62-turbo-dev \
@@ -75,8 +77,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libicu-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
-        pdo_mysql \
-        mysqli \
+        pdo_pgsql \
+        pgsql \
         bcmath \
         exif \
         gd \
@@ -87,8 +89,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # but apt considers them auto-installed dependencies of the -dev
     # packages; mark them manual so purging the -dev/headers below doesn't
     # cascade-remove the runtime .so files the extensions need.
-    && apt-mark manual libzip5 libpng16-16t64 libjpeg62-turbo libfreetype6 libonig5 libicu76 \
-    && apt-get purge -y --auto-remove libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libonig-dev libicu-dev \
+    && apt-mark manual libpq5 libzip5 libpng16-16t64 libjpeg62-turbo libfreetype6 libonig5 libicu76 \
+    && apt-get purge -y --auto-remove libpq-dev libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libonig-dev libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Serve the app from public/ instead of Apache's default docroot.
